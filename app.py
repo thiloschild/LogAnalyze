@@ -11,17 +11,80 @@ import json
 #import easygui
 
 
+
+
+from urllib.request import Request, urlopen
+from urllib.error import URLError
+import json
+from pathlib import Path
+import socket
+
+from collections import namedtuple
+
+class Sender(object):
+    def __init__(self,
+                 name,
+                 host='192.168.1.214',
+                 port=8745, 
+                 encoding="cp1251"):
+        self.host = host
+        self.port = port
+        self.encoding = encoding
+        self.name = name
+        self.ip = socket.gethostbyname(socket.gethostname())
+        self.project_id = self.__get_project_id()
+        self.group = name
+
+    def __sock(self, route, message=None):
+        url = f"http://{self.host}:{self.port}/{route}"
+        request = Request(url)
+        request.add_header('Content-Type', 'application/json; charset=utf-8')
+        if message is None:
+            message = json.dumps(self.name).encode(self.encoding)
+        return urlopen(request, message)
+
+    def __get_project_id(self):
+        with self.__sock('get_project_id') as s:
+            return json.loads(s.read())
+
+    def log(self, key, value):
+        """Log key-value.
+        
+        Args:
+            key (str): Parameter name.
+            value (obj): Any serializable object.
+        Returns:
+            boolean: success?
+        """
+        _log = json.dumps((self.ip, 
+                           self.project_id,
+                           self.name,
+                           self.group,
+                           key, 
+                           dump2json(value))).encode(self.encoding)
+        with self.__sock('log', _log) as s:
+            return json.loads(s.read())            
+
+    def update_group(self, group):
+        self.group = dump2json(group) # general.
+
+    def list_logs(self):
+
+        LOG = namedtuple('log', 'date ip project_id group process_name key value')
+        with self.__sock('get_all_logs') as s:
+            return [LOG(*log) for log in json.loads(s.read())]
+
 #functions
 
 def get_data(file):
 
-	with open(file, 'r') as data:
-		data = data.read()
+	#with open(file, 'r') as data:
+	#	data = data.read()
 
-	logs = json.loads(data)
+	#logs = json.loads(data)
 
-	#s = Sender('Test', '192.168.1.214')
-	#logs = s.list_logs()
+	s = Sender('Test', '192.168.1.214')
+	logs = s.list_logs()
 
 
 	df = pd.DataFrame(columns=['exp_num', 'date', 'peptides_cnt', 'proteins_cnt', 'queries_cnt', 'hits_cnt', 'acquired_name', 'sample_description'])
