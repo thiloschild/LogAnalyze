@@ -240,4 +240,4 @@ def update_table(page_current, page_size, sort_by, filter):
 ##################################################################################
 #run the app
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, host='0.0.0.0', port=8050)
