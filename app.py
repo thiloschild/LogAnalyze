@@ -8,7 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import json
-import easygui
+#import easygui
 
 
 #functions
@@ -70,9 +70,9 @@ def get_data(file):
 	df = df.reset_index(drop=True)
 	return df
 
-def save(df):
-	save_path = easygui.filesavebox(default="logs")
-	df.to_excel(save_path+".xlsx")
+#def save(df):
+#	save_path = easygui.filesavebox(default="logs")
+#	df.to_excel(save_path+".xlsx")
 
 
 #################################################################################
@@ -196,7 +196,7 @@ def run_on_click(n_clicks):
 		raise PreventUpdate
 
 	df = get_data('logs.json')
-	save(df)
+	#save(df)
 	return 'The file as been saved!'
 
 
