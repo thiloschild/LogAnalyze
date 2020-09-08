@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-import easygui
+#import easygui
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 import json
@@ -80,7 +80,8 @@ def get_data():
 def get_df():
 
 
-    logs = get_data_mock('logs.json')
+    #logs = get_data_mock('logs.json')
+    logs = get_data()
 
     df = pd.DataFrame(columns=['id',
                                'name',
