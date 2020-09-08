@@ -80,7 +80,8 @@ def get_data():
 def get_df():
 
 
-    logs = get_data_mock('logs.json')
+    #logs = get_data_mock('logs.json')
+    logs = get_data()
 
     df = pd.DataFrame(columns=['id',
                                'name',
