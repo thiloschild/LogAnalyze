@@ -47,10 +47,6 @@ app.layout = html.Div(children=[
 
     dcc.Graph(id='graph'),
 
-    html.Button(id='button', n_clicks=0, children='Save Logs'),
-    html.Div(id='output-container-button', children='Press "SAVE LOGS" to save the logs as xlsx'),
-
-    html.Br(),html.Br(),
     html.H4('Log: '),
     html.Br(),
 
@@ -79,8 +75,12 @@ app.layout = html.Div(children=[
 
         sort_action='custom',
         sort_mode='single',
-        sort_by=[])
-])
+        sort_by=[]),
+    
+    html.Br(),html.Br(),
+    html.Button(id='button', n_clicks=0, children='Save Logs'),
+    html.Div(id='output-container-button', children='Press "SAVE LOGS" to save the logs as xlsx'),
+], style={'marginLeft': 25, 'marginRight': 25, 'marginTop': 15, 'marginBottom': 15})
 
 operators = [['ge ', '>='],
              ['le ', '<='],
