@@ -57,7 +57,7 @@ app.layout = html.Div(children=[
     dash_table.DataTable(
         id='table-sorting-filtering',
         columns=[
-            {'name': 'id', 'id': 'íd', 'type': 'numeric'},
+            {'name': 'id', 'id': 'id', 'type': 'numeric'},
             {'name': 'name', 'id': 'name', 'type': 'text'},
             {'name': 'sample', 'id': 'sample', 'type': 'text'},
             {'name': 'aquired', 'id': 'aquired', 'type': 'datetime'},
