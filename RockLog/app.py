@@ -6,6 +6,7 @@ from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 #############
 from functions import *
@@ -34,16 +35,6 @@ app.layout = html.Div(children=[
     '''),
 
     html.H4('Plot:'),
-    html.Br(),
-
-    dcc.RadioItems(
-    	id='choose',
-        options=[
-            {'label': 'Number of Peptides', 'value': 'peptides'},
-            {'label': 'Number of Proteins', 'value': 'proteins'}
-        ],
-        value='proteins'
-    ),
 
     dcc.Graph(id='graph'),
 
@@ -119,10 +110,9 @@ def split_filter_part(filter_part):
 
 @app.callback(
     Output('graph', 'figure'),
-    [Input('choose', 'value'),
-     Input('table-sorting-filtering', 'sort_by'),
+    [Input('table-sorting-filtering', 'sort_by'),
      Input('table-sorting-filtering', 'filter_query')])
-def update_figure(selected_box, sort_by, filter):
+def update_figure(sort_by, filter):
     filtering_expressions = filter.split(' && ')
     dff = df
     for filter_part in filtering_expressions:
@@ -138,11 +128,29 @@ def update_figure(selected_box, sort_by, filter):
             # only works with complete fields in standard format
             dff = dff.loc[dff[col_name].str.startswith(filter_value)]
 
-    fig = px.bar(dff, x="id",
-                      y=selected_box,
-                      hover_name="name",
-                      hover_data= ['peptides', 'proteins', 'queries', 'hits', 'sample', 'aquired', 'analyzed'])
+
+    id = dff["id"]
+    proteins = dff["proteins"]
+    peptides = dff["peptides"]
+
+
+    fig=go.Figure(
+        data=[
+            go.Bar(name="Proteins", x=id, y=proteins, yaxis='y', offsetgroup=1, 
+                   text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s'%(t,s,r,v,w,q,x,y,z) 
+                   for t,s,r,v,w,q,x,y,z in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed']].values], hoverinfo = 'text',),
+            go.Bar(name='Peptides', x=id, y=peptides, yaxis='y2', offsetgroup=2,
+                   text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s'%(t,s,r,v,w,q,x,y,z) 
+                   for t,s,r,v,w,q,x,y,z in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed']].values], hoverinfo = 'text',),
+        ],
+        layout={
+            'yaxis': {'title': 'Proteins'},
+            'yaxis2': {'title': 'Peptides', 'overlaying': 'y', 'side': 'right'}
+        }
+        )
+
     fig.update_layout(
+        barmode="group",
         hoverlabel=dict(
         bgcolor="white", 
         font_size=16, 
@@ -159,7 +167,7 @@ def run_on_click(n_clicks):
 	if not n_clicks:
 		raise PreventUpdate
 
-	df = get_data('logs.json')
+	df = get_df()
 	#save(df)
 	return 'The file as been saved!'
 
@@ -177,13 +185,10 @@ def update_table(page_current, page_size, sort_by, filter):
         col_name, operator, filter_value = split_filter_part(filter_part)
 
         if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
-            # these operators match pandas series operator method names
             dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
         elif operator == 'contains':
             dff = dff.loc[dff[col_name].str.contains(filter_value)]
         elif operator == 'datestartswith':
-            # this is a simplification of the front-end filtering logic,
-            # only works with complete fields in standard format
             dff = dff.loc[dff[col_name].str.startswith(filter_value)]
 
     if len(sort_by):
