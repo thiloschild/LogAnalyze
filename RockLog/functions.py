@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-#import easygui
+import easygui
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 import json
@@ -80,8 +80,8 @@ def get_data():
 def get_df():
 
 
-    logs = get_data_mock('logs.json')
-    #logs = get_data()
+    #logs = get_data_mock('logs.json')
+    logs = get_data()
 
     df = pd.DataFrame(columns=['id',
                                'name',
@@ -91,6 +91,7 @@ def get_df():
                                'peptides',
                                'queries',
                                'hits',
+                               'type',
                                'analyzed'])
  
     lenghth = len(logs)
@@ -113,6 +114,7 @@ def get_df():
                 analyzed = analyzed[0]
                 #experiment number
                 id = logs[i][2]
+                type = logs[i][3]
                 #peptides_cnt + proteins_cnt + hits_cnt + queries_cnt
                 search_stats = logs[i][6]
                 stats = search_stats.split(',', 7)
@@ -143,6 +145,7 @@ def get_df():
                                     'peptides': [peptides],
                                     'queries': [queries],
                                     'hits': [hits],
+                                    'type': [type],
                                     'analyzed': [analyzed]})
             df = pd.concat([df, df_temp])
             f1=False
@@ -157,3 +160,13 @@ def get_df():
 def save(df):
     save_path = easygui.filesavebox(default="logs")
     df.to_excel(save_path+".xlsx")
+
+
+def sort_df(df):
+    df = df.sort_values(by=['analyzed'])
+    df = df.reset_index(drop=True)
+    return df
+
+def get_index_list(df):
+    index_list = list(df.index.values)
+    return index_list

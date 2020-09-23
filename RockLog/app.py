@@ -8,6 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
+import urllib.parse
 #############
 from functions import *
 
@@ -17,6 +18,7 @@ from functions import *
 #################################################################################
 
 df = get_df()
+sort_df(df)
 PAGE_SIZE = 25
 lenght_df = len(df.index)
 PAGE_COUNT = int(lenght_df/PAGE_SIZE)+1
@@ -52,6 +54,7 @@ app.layout = html.Div(children=[
             {'name': 'peptides', 'id': 'peptides', 'type': 'numeric'},
             {'name': 'queries', 'id': 'queries', 'type': 'numeric'},
             {'name': 'hits', 'id': 'hits', 'type': 'numeric'},
+            {'name': 'type', 'id': 'type', 'type': 'text'},
             {'name': 'analyzed', 'id': 'analyzed', 'type': 'datetime'},   
             
         ],
@@ -68,11 +71,20 @@ app.layout = html.Div(children=[
         sort_mode='single',
         sort_by=[]),
     
-    html.Br(),html.Br(),
-    html.Button(id='button', n_clicks=0, children='Save Logs'),
-    html.Div(id='output-container-button', children='Press "SAVE LOGS" to save the logs as xlsx'),
-], style={'marginLeft': 25, 'marginRight': 25, 'marginTop': 15, 'marginBottom': 15})
+    html.Br(),
 
+    html.A(
+        'Download Data',
+        id='download-link',
+        download="logs.csv",
+        href=""),
+
+    html.Br(),
+
+    html.Button(id='button', n_clicks=0, children='Save Logs'),
+
+    #html.Div(id='output-container-button', children='Press "SAVE LOGS" to save the logs as xlsx'),
+], style={'marginLeft': 25, 'marginRight': 25, 'marginTop': 15, 'marginBottom': 15})
 operators = [['ge ', '>='],
              ['le ', '<='],
              ['lt ', '<'],
@@ -132,21 +144,23 @@ def update_figure(sort_by, filter):
     id = dff["id"]
     proteins = dff["proteins"]
     peptides = dff["peptides"]
+    analyzed = dff["analyzed"]
+    index_list = get_index_list(df)
 
 
     fig=go.Figure(
         data=[
-            go.Bar(name="Proteins", x=id, y=proteins, yaxis='y', offsetgroup=1, 
+            go.Bar(name="Proteins", x=index_list, y=proteins, yaxis='y', offsetgroup=1,
                    text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s'%(t,s,r,v,w,q,x,y,z) 
                    for t,s,r,v,w,q,x,y,z in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed']].values], hoverinfo = 'text',),
-            go.Bar(name='Peptides', x=id, y=peptides, yaxis='y2', offsetgroup=2,
+            go.Bar(name='Peptides', x=index_list, y=peptides, yaxis='y2', offsetgroup=2,
                    text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s'%(t,s,r,v,w,q,x,y,z) 
                    for t,s,r,v,w,q,x,y,z in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed']].values], hoverinfo = 'text',),
         ],
-        layout={
-            'yaxis': {'title': 'Proteins'},
-            'yaxis2': {'title': 'Peptides', 'overlaying': 'y', 'side': 'right'}
-        }
+        layout=
+            {'yaxis': {'title': 'Proteins'},
+             'yaxis2': {'title': 'Peptides', 'overlaying': 'y', 'side': 'right'},
+             'xaxis': {'title': 'title', 'showticklabels': False}}
         )
 
     fig.update_layout(
@@ -160,16 +174,16 @@ def update_figure(sort_by, filter):
     return fig
 
 
-@app.callback(
-	Output('output-container-button', 'children'),
-	[Input('button', 'n_clicks')])
-def run_on_click(n_clicks):
-	if not n_clicks:
-		raise PreventUpdate
-
-	df = get_df()
-	#save(df)
-	return 'The file as been saved!'
+#@app.callback(
+#    Output('output-container-button', 'children'),
+#    [Input('button', 'n_clicks')])
+#def run_on_click(n_clicks):
+#    if not n_clicks:
+#        raise PreventUpdate
+#
+#    df = get_df()
+#    save(df)
+#    return 'The file as been saved!'
 
 
 @app.callback(
@@ -204,6 +218,17 @@ def update_table(page_current, page_size, sort_by, filter):
     page = page_current
     size = page_size
     return dff.iloc[page * size: (page + 1) * size].to_dict('records')
+
+@app.callback(
+    dash.dependencies.Output('download-link', 'href'),
+    [dash.dependencies.Input('button', 'n_clicks')])
+def update_download_link(n_clicks):
+    df = get_df()
+    csv_string = df.to_csv(index=False, encoding='utf-8')
+    csv_string = csv_string.replace(" ", "_")
+    #csv_string = csv_string.replace(",", " ")
+    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(csv_string)
+    return csv_string
 
 
 ##################################################################################
