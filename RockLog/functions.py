@@ -76,11 +76,11 @@ def get_data():
 
     return logs
 
-def get_df():
 
+def __get_df():
 
-    #logs = get_data_mock('logs.json')
-    logs = get_data()
+    logs = get_data_mock('logs.json')
+    #logs = get_data()
 
     df = pd.DataFrame(columns=['id',
                                'name',
@@ -91,7 +91,9 @@ def get_df():
                                'queries',
                                'hits',
                                'type',
-                               'analyzed'])
+                               'analyzed',
+                               'msResolution',
+                               'ChromFWHM_Min'])
  
     lenghth = len(logs)
     i = 0
@@ -160,10 +162,64 @@ def get_df():
     df = df.reset_index(drop=True)
     return df
 
-def save(df):
-    save_path = easygui.filesavebox(default="logs")
-    df.to_excel(save_path+".xlsx")
+# def get_get_df(foo):
+#     df = None
+#     def wrap_foo(refresh=False):
+#         if df is None:
+#             df = foo()
+#         return df
+#     return wrap_foo
 
+class refresh_cache(object):
+    def __init__(self, foo):
+        self.output = None
+        self.foo = foo
+
+    def __call__(self, *args, **kwds, refresh=False):
+        if self.output is None or refresh:
+            self.output = self.foo(*args, **kwds)
+        return self.output
+
+
+test_foo = refresh_cache(test_foo)
+
+#def refresh_cache(foo):
+#    output = None
+#    def get_df(refresh=False, *args, **kwds):
+#        if output is None or refresh:
+#            output = foo(*args, **kwds)
+#        return output 
+#    return get_df
+
+output = None
+def refresh_cache(foo):
+    def get_df(*args, **kwds):
+        global output
+        if output is None:
+            output = foo(*args, **kwds)
+        return output 
+    return get_df
+
+def test_foo():
+    return 5
+
+test_foo2 = refresh_cache(test_foo)
+test_foo2()
+mem_get_df = refresh_cache(__get_df)
+
+# import fuctools
+
+# get_df = functools.lru_cache(get_df)
+
+# @functools.lru_cache
+# def get_df():
+#     ...
+
+# @get_get_df
+# def get_df():
+#     ...
+
+#get_df = get_get_df()
 
 def sort_df(df):
     df = df.sort_values(by=['analyzed'])

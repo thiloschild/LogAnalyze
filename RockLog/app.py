@@ -17,7 +17,7 @@ from functions import *
 #Dash
 #################################################################################
 
-df = get_df()
+df = mem_get_df()
 sort_df(df)
 PAGE_SIZE = 40
 lenght_df = len(df.index)
