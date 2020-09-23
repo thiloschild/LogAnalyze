@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-import easygui
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 import json
