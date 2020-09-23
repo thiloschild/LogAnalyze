@@ -105,7 +105,10 @@ def get_df():
                 stats = stats.split(',')
                 aquired = stats[3].split('"')
                 aquired = aquired[3]
-                #print(aquired_time)
+                msResolution = stats[10].split(':')
+                msResolution = float(msResolution[2])
+                ChromFWHM_Min = stats[7].split(':')
+                ChromFWHM_Min = float(ChromFWHM_Min[2])
                 f1 = True
             if x == "get_search_stats:output":
                 #date
@@ -145,7 +148,9 @@ def get_df():
                                     'queries': [queries],
                                     'hits': [hits],
                                     'type': [type],
-                                    'analyzed': [analyzed]})
+                                    'analyzed': [analyzed],
+                                    'msResolution': [msResolution],
+                                    'ChromFWHM_Min': [ChromFWHM_Min]})
             df = pd.concat([df, df_temp])
             f1=False
             f2=False
@@ -154,7 +159,6 @@ def get_df():
     
     df = df.reset_index(drop=True)
     return df
-
 
 def save(df):
     save_path = easygui.filesavebox(default="logs")

@@ -19,7 +19,7 @@ from functions import *
 
 df = get_df()
 sort_df(df)
-PAGE_SIZE = 25
+PAGE_SIZE = 40
 lenght_df = len(df.index)
 PAGE_COUNT = int(lenght_df/PAGE_SIZE)+1
 
@@ -36,11 +36,22 @@ app.layout = html.Div(children=[
         
     '''),
 
-    html.H4('Plot:'),
 
     dcc.Graph(id='graph'),
 
-    html.H4('Log: '),
+
+    dcc.Dropdown(id='dropdown',
+                 options=[
+                   {'label': 'msResolution', 'value': 'msResolution'},
+                   {'label': 'ChromFWHM_Min', 'value': 'ChromFWHM_Min'}
+                 ],
+                 value='msResolution'
+        ),
+
+    dcc.Graph(id='info_graph',
+        config={'displayModeBar': False},
+    ),
+
     html.Br(),
 
     dash_table.DataTable(
@@ -55,7 +66,9 @@ app.layout = html.Div(children=[
             {'name': 'queries', 'id': 'queries', 'type': 'numeric'},
             {'name': 'hits', 'id': 'hits', 'type': 'numeric'},
             {'name': 'type', 'id': 'type', 'type': 'text'},
-            {'name': 'analyzed', 'id': 'analyzed', 'type': 'datetime'},   
+            {'name': 'analyzed', 'id': 'analyzed', 'type': 'datetime'},
+            {'name': 'msResolution', 'id': 'msResolution', 'type': 'numeric'},
+            {'name': 'ChromFWHM_Min', 'id': 'ChromFWHM_Min', 'type': 'numeric'},
             
         ],
         
@@ -71,19 +84,16 @@ app.layout = html.Div(children=[
         sort_mode='single',
         sort_by=[]),
     
-    html.Br(),
+    html.Br(),html.Br(),html.Br(),
 
-    html.A(
-        'Download Data',
-        id='download-link',
+    html.Div(html.A(html.Button('Download'),
+        id='test',
         download="logs.csv",
         href=""),
+    id='download-link'),
 
     html.Br(),
 
-    html.Button(id='button', n_clicks=0, children='Save Logs'),
-
-    #html.Div(id='output-container-button', children='Press "SAVE LOGS" to save the logs as xlsx'),
 ], style={'marginLeft': 25, 'marginRight': 25, 'marginTop': 15, 'marginBottom': 15})
 operators = [['ge ', '>='],
              ['le ', '<='],
@@ -151,40 +161,38 @@ def update_figure(sort_by, filter):
     fig=go.Figure(
         data=[
             go.Bar(name="Proteins", x=index_list, y=proteins, yaxis='y', offsetgroup=1,
-                   text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s'%(t,s,r,v,w,q,x,y,z) 
-                   for t,s,r,v,w,q,x,y,z in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed']].values], hoverinfo = 'text',),
+                   text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s<br>type: %s<br>msResolution: %s<br>ChromFWHM_Min: %s'%(t,s,r,v,w,q,x,y,z,a,b,c) 
+                   for t,s,r,v,w,q,x,y,z,a,b,c in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
             go.Bar(name='Peptides', x=index_list, y=peptides, yaxis='y2', offsetgroup=2,
-                   text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s'%(t,s,r,v,w,q,x,y,z) 
-                   for t,s,r,v,w,q,x,y,z in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed']].values], hoverinfo = 'text',),
+                   text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s<br>type: %s<br>msResolution: %s<br>ChromFWHM_Min: %s'%(t,s,r,v,w,q,x,y,z,a,b,c) 
+                   for t,s,r,v,w,q,x,y,z,a,b,c in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
         ],
         layout=
-            {'yaxis': {'title': 'Proteins'},
+            {
+             'plot_bgcolor': '#FFF',
+             'yaxis': {'title': 'Proteins'},
              'yaxis2': {'title': 'Peptides', 'overlaying': 'y', 'side': 'right'},
-             'xaxis': {'title': 'title', 'showticklabels': False}}
+             'xaxis': {'title': 'Experiments', 'showticklabels': False}
+            }
         )
 
     fig.update_layout(
         barmode="group",
         hoverlabel=dict(
         bgcolor="white", 
-        font_size=16, 
+        font_size=16,
         font_family="Rockwell"
         )
     )
     return fig
 
-
-#@app.callback(
-#    Output('output-container-button', 'children'),
-#    [Input('button', 'n_clicks')])
-#def run_on_click(n_clicks):
-#    if not n_clicks:
-#        raise PreventUpdate
-#
-#    df = get_df()
-#    save(df)
-#    return 'The file as been saved!'
-
+@app.callback(
+    Output('info_graph', 'figure'),
+    [Input('dropdown', 'value')])
+def update_info_graph(selected_dropdown_value):
+    df = get_df()
+    figure = px.line(df, x=get_index_list(df), y=selected_dropdown_value)
+    return figure
 
 @app.callback(
     Output('table-sorting-filtering', 'data'),
@@ -220,13 +228,12 @@ def update_table(page_current, page_size, sort_by, filter):
     return dff.iloc[page * size: (page + 1) * size].to_dict('records')
 
 @app.callback(
-    dash.dependencies.Output('download-link', 'href'),
-    [dash.dependencies.Input('button', 'n_clicks')])
+    dash.dependencies.Output('test', 'href'),
+    [dash.dependencies.Input('download-link', 'n_clicks')])
 def update_download_link(n_clicks):
     df = get_df()
     csv_string = df.to_csv(index=False, encoding='utf-8')
     csv_string = csv_string.replace(" ", "_")
-    #csv_string = csv_string.replace(",", " ")
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(csv_string)
     return csv_string
 
