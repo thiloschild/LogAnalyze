@@ -1,4 +1,4 @@
-# LogAnalyze
+# RockLog
 Parsing and plotting of Logs from Rock
 
-Python Packages needed: Pandas, Json, Dash, Plotly, easygui
+Python Packages needed: pandas, json, dash, plotly, 

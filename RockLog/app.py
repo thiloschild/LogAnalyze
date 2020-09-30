@@ -1,3 +1,4 @@
+import os, sys; sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import dash
 import dash_table
 import dash_core_components as dcc
@@ -9,6 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 import urllib.parse
+from datetime import datetime
 #############
 from functions import *
 
@@ -18,10 +20,8 @@ from functions import *
 #################################################################################
 
 df = mem_get_df()
-sort_df(df)
-PAGE_SIZE = 40
-lenght_df = len(df.index)
-PAGE_COUNT = int(lenght_df/PAGE_SIZE)+1
+df = sort_df(df)
+now = datetime.now()
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -36,6 +36,9 @@ app.layout = html.Div(children=[
         
     '''),
 
+    html.Br(),html.Br(),
+    html.A(html.Button('Refresh', id='refresh_button', n_clicks=0), href='/'),
+    html.Div(id='refreshed', children=''),
 
     dcc.Graph(id='graph'),
 
@@ -73,8 +76,7 @@ app.layout = html.Div(children=[
         ],
         
         page_current=0,
-        page_size=PAGE_SIZE,
-        page_count=PAGE_COUNT,
+        page_size=40,
         page_action='custom',
 
         filter_action='custom',
@@ -84,7 +86,15 @@ app.layout = html.Div(children=[
         sort_mode='single',
         sort_by=[]),
     
-    html.Br(),html.Br(),html.Br(),
+    html.Br(),
+    'Page size: ',
+    dcc.Input(
+        id='datatable-page-size',
+        type='number',
+        min=1,
+        value=40
+    ),
+    html.Br(),html.Br(),
 
     html.Div(html.A(html.Button('Download'),
         id='test',
@@ -95,61 +105,17 @@ app.layout = html.Div(children=[
     html.Br(),
 
 ], style={'marginLeft': 25, 'marginRight': 25, 'marginTop': 15, 'marginBottom': 15})
-operators = [['ge ', '>='],
-             ['le ', '<='],
-             ['lt ', '<'],
-             ['gt ', '>'],
-             ['ne ', '!='],
-             ['eq ', '='],
-             ['contains '],
-             ['datestartswith ']]
-
-def split_filter_part(filter_part):
-    for operator_type in operators:
-        for operator in operator_type:
-            if operator in filter_part:
-                name_part, value_part = filter_part.split(operator, 1)
-                name = name_part[name_part.find('{') + 1: name_part.rfind('}')]
-
-                value_part = value_part.strip()
-                v0 = value_part[0]
-                if (v0 == value_part[-1] and v0 in ("'", '"', '`')):
-                    value = value_part[1: -1].replace('\\' + v0, v0)
-                else:
-                    try:
-                        value = float(value_part)
-                    except ValueError:
-                        value = value_part
-
-                # word operators need spaces after them in the filter string,
-                # but we don't want these later
-                return name, operator_type[0].strip(), value
-
-    return [None] * 3
 
 ##################################################################################
 #App Callback
 
+#First Graph
 @app.callback(
     Output('graph', 'figure'),
-    [Input('table-sorting-filtering', 'sort_by'),
-     Input('table-sorting-filtering', 'filter_query')])
-def update_figure(sort_by, filter):
-    filtering_expressions = filter.split(' && ')
-    dff = df
-    for filter_part in filtering_expressions:
-        col_name, operator, filter_value = split_filter_part(filter_part)
-
-        if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
-            # these operators match pandas series operator method names
-            dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
-        elif operator == 'contains':
-            dff = dff.loc[dff[col_name].str.contains(filter_value)]
-        elif operator == 'datestartswith':
-            # this is a simplification of the front-end filtering logic,
-            # only works with complete fields in standard format
-            dff = dff.loc[dff[col_name].str.startswith(filter_value)]
-
+    [Input('table-sorting-filtering', 'filter_query')])
+def update_figure(filter):
+    df = mem_get_df()
+    dff = filter_data(df, filter)
 
     id = dff["id"]
     proteins = dff["proteins"]
@@ -157,15 +123,14 @@ def update_figure(sort_by, filter):
     analyzed = dff["analyzed"]
     index_list = get_index_list(df)
 
-
     fig=go.Figure(
         data=[
             go.Bar(name="Proteins", x=index_list, y=proteins, yaxis='y', offsetgroup=1,
                    text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s<br>type: %s<br>msResolution: %s<br>ChromFWHM_Min: %s'%(t,s,r,v,w,q,x,y,z,a,b,c) 
-                   for t,s,r,v,w,q,x,y,z,a,b,c in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
+                   for t,s,r,v,w,q,x,y,z,a,b,c in dff.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
             go.Bar(name='Peptides', x=index_list, y=peptides, yaxis='y2', offsetgroup=2,
                    text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s<br>type: %s<br>msResolution: %s<br>ChromFWHM_Min: %s'%(t,s,r,v,w,q,x,y,z,a,b,c) 
-                   for t,s,r,v,w,q,x,y,z,a,b,c in df.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
+                   for t,s,r,v,w,q,x,y,z,a,b,c in dff.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
         ],
         layout=
             {
@@ -186,14 +151,24 @@ def update_figure(sort_by, filter):
     )
     return fig
 
+#Second Graph
 @app.callback(
     Output('info_graph', 'figure'),
-    [Input('dropdown', 'value')])
-def update_info_graph(selected_dropdown_value):
-    df = get_df()
-    figure = px.line(df, x=get_index_list(df), y=selected_dropdown_value)
-    return figure
+    [Input('dropdown', 'value'),
+     Input('table-sorting-filtering', 'filter_query')])
+def update_info_graph(selected_dropdown_value, filter):
+    df = mem_get_df()
+    dff = filter_data(df, filter)
+    dff = sort_df(dff)
+    selected_dropdown_value = dff[selected_dropdown_value]
 
+    fig = px.line(dff, x=get_index_list(dff), y=selected_dropdown_value)
+
+    fig.update_layout(xaxis_title="Experiments")
+
+    return fig
+
+#Table
 @app.callback(
     Output('table-sorting-filtering', 'data'),
     [Input('table-sorting-filtering', 'page_current'),
@@ -201,18 +176,8 @@ def update_info_graph(selected_dropdown_value):
      Input('table-sorting-filtering', 'sort_by'),
      Input('table-sorting-filtering', 'filter_query')])
 def update_table(page_current, page_size, sort_by, filter):
-    filtering_expressions = filter.split(' && ')
-    dff = df
-    for filter_part in filtering_expressions:
-        col_name, operator, filter_value = split_filter_part(filter_part)
-
-        if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
-            dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
-        elif operator == 'contains':
-            dff = dff.loc[dff[col_name].str.contains(filter_value)]
-        elif operator == 'datestartswith':
-            dff = dff.loc[dff[col_name].str.startswith(filter_value)]
-
+    df = mem_get_df()
+    dff = filter_data(df, filter)
     if len(sort_by):
         dff = dff.sort_values(
             [col['column_id'] for col in sort_by],
@@ -227,18 +192,55 @@ def update_table(page_current, page_size, sort_by, filter):
     size = page_size
     return dff.iloc[page * size: (page + 1) * size].to_dict('records')
 
+#Table - update page count
+@app.callback(
+    Output('table-sorting-filtering', 'page_count'),
+    [Input('table-sorting-filtering', 'page_current'),
+     Input('table-sorting-filtering', 'page_size'),
+     Input('table-sorting-filtering', 'sort_by'),
+     Input('table-sorting-filtering', 'filter_query')])
+def update_table_page_count(page_current, page_size, sort_by, filter):
+    dff = filter_data(df, filter)
+    page = page_current
+    size = page_size
+    page_count = get_page_count(dff, size)
+    return page_count
+
+#Table - update page size
+@app.callback(
+    Output('table-sorting-filtering', 'page_size'),
+    [Input('datatable-page-size', 'value')])
+def update_table_page_size(page_size):
+    if page_size != None:
+        return page_size
+    else:
+        return 1
+
+#Download
 @app.callback(
     dash.dependencies.Output('test', 'href'),
     [dash.dependencies.Input('download-link', 'n_clicks')])
 def update_download_link(n_clicks):
-    df = get_df()
+    df = mem_get_df(refresh=True)
     csv_string = df.to_csv(index=False, encoding='utf-8')
     csv_string = csv_string.replace(" ", "_")
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(csv_string)
     return csv_string
 
-
+#Refresh Button
+@app.callback(
+    dash.dependencies.Output('refreshed', 'children'),
+    [dash.dependencies.Input('refresh_button', 'n_clicks')])
+def update_download_link(n_clicks):
+    df = mem_get_df(refresh=True)
+    now = datetime.now()
+    msg = 'Refreshed on: {}'.format(now.strftime("%d/%m/%Y %H:%M:%S"))
+    return msg
 ##################################################################################
 #run the app
-if __name__ == '__main__':
+
+def main():
     app.run_server(debug=True, host='0.0.0.0', port=8050)
+
+if __name__ == '__main__':
+    main()

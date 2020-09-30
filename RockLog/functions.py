@@ -1,3 +1,4 @@
+import os, sys; sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import json
 import pandas as pd
 from urllib.request import Request, urlopen
@@ -76,11 +77,10 @@ def get_data():
 
     return logs
 
-
 def __get_df():
 
-    logs = get_data_mock('logs.json')
-    #logs = get_data()
+    #logs = get_data_mock('logs.json')
+    logs = get_data()
 
     df = pd.DataFrame(columns=['id',
                                'name',
@@ -162,64 +162,17 @@ def __get_df():
     df = df.reset_index(drop=True)
     return df
 
-# def get_get_df(foo):
-#     df = None
-#     def wrap_foo(refresh=False):
-#         if df is None:
-#             df = foo()
-#         return df
-#     return wrap_foo
-
 class refresh_cache(object):
     def __init__(self, foo):
         self.output = None
         self.foo = foo
 
-    def __call__(self, *args, **kwds, refresh=False):
+    def __call__(self, refresh=False, *args, **kwds):
         if self.output is None or refresh:
             self.output = self.foo(*args, **kwds)
         return self.output
 
-
-test_foo = refresh_cache(test_foo)
-
-#def refresh_cache(foo):
-#    output = None
-#    def get_df(refresh=False, *args, **kwds):
-#        if output is None or refresh:
-#            output = foo(*args, **kwds)
-#        return output 
-#    return get_df
-
-output = None
-def refresh_cache(foo):
-    def get_df(*args, **kwds):
-        global output
-        if output is None:
-            output = foo(*args, **kwds)
-        return output 
-    return get_df
-
-def test_foo():
-    return 5
-
-test_foo2 = refresh_cache(test_foo)
-test_foo2()
 mem_get_df = refresh_cache(__get_df)
-
-# import fuctools
-
-# get_df = functools.lru_cache(get_df)
-
-# @functools.lru_cache
-# def get_df():
-#     ...
-
-# @get_get_df
-# def get_df():
-#     ...
-
-#get_df = get_get_df()
 
 def sort_df(df):
     df = df.sort_values(by=['analyzed'])
@@ -229,3 +182,61 @@ def sort_df(df):
 def get_index_list(df):
     index_list = list(df.index.values)
     return index_list
+
+def split_filter_part(filter_part):
+
+    operators = [['ge ', '>='],
+                ['le ', '<='],
+                ['lt ', '<'],
+                ['gt ', '>'],
+                ['ne ', '!='],
+                ['eq ', '='],
+                ['contains '],
+                ['datestartswith ']]
+    for operator_type in operators:
+        for operator in operator_type:
+            if operator in filter_part:
+                name_part, value_part = filter_part.split(operator, 1)
+                name = name_part[name_part.find('{') + 1: name_part.rfind('}')]
+
+                value_part = value_part.strip()
+                v0 = value_part[0]
+                if (v0 == value_part[-1] and v0 in ("'", '"', '`')):
+                    value = value_part[1: -1].replace('\\' + v0, v0)
+                else:
+                    try:
+                        value = float(value_part)
+                    except ValueError:
+                        value = value_part
+
+                # word operators need spaces after them in the filter string,
+                # but we don't want these later
+                return name, operator_type[0].strip(), value
+
+    return [None] * 3
+
+def filter_data(df, filter):
+
+    filtering_expressions = filter.split(' && ')
+    dff = df
+    for filter_part in filtering_expressions:
+        col_name, operator, filter_value = split_filter_part(filter_part)
+
+        if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
+            # these operators match pandas series operator method names
+            dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
+        elif operator == 'contains':
+            dff = dff.loc[dff[col_name].str.contains(filter_value)]
+        elif operator == 'datestartswith':
+            # this is a simplification of the front-end filtering logic,
+            # only works with complete fields in standard format
+            dff = dff.loc[dff[col_name].str.startswith(filter_value)]
+
+    return dff
+
+def get_page_count(df, PAGE_SIZE):
+
+    lenght_df = len(df.index)
+    PAGE_COUNT = int(lenght_df/PAGE_SIZE)+1
+
+    return PAGE_COUNT

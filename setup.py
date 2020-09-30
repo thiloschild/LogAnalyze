@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocklog",
-    version="0.0.1",
+    version="0.0.10",
     author="Thilo Schild",
     author_email="work@thilo-schild.de",
     description="collects Logs and presents them in a web app",
@@ -23,12 +23,12 @@ setuptools.setup(
         "Operating System :: OS Independent",
         ],
     packages=setuptools.find_packages(),
-    install_requires=['json', 'pandas', 'Dash', 'Plotly', 'easygui'],
+    install_requires=['pandas', 'dash', 'plotly', 'datetime'],
     python_requires='>=3.6',
     entry_points={
 
         'console_scripts': [
-            'start_app = RockLog.app:main'
+            'rocklog = rocklog.app:main'
         ],
         
     }
