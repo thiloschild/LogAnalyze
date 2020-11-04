@@ -245,7 +245,7 @@ def update_download_link(n_clicks):
 #run the app
 
 def main():
-    app.run_server(debug=True, port=8050)
+    app.run_server(debug=True, port=8050, host='0.0.0.0')
 
 if __name__ == '__main__':
     main()
