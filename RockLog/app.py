@@ -122,33 +122,36 @@ def update_figure(filter):
     peptides = dff["peptides"]
     analyzed = dff["analyzed"]
     index_list = get_index_list(df)
+###########
 
-    fig=go.Figure(
-        data=[
-            go.Bar(name="Proteins", x=index_list, y=proteins, yaxis='y', offsetgroup=1,
+##############
+    trace0 = go.Bar(name="Proteins", x=index_list, y=proteins, xaxis='x', yaxis='y',
                    text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s<br>type: %s<br>msResolution: %s<br>ChromFWHM_Min: %s'%(t,s,r,v,w,q,x,y,z,a,b,c) 
-                   for t,s,r,v,w,q,x,y,z,a,b,c in dff.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
-            go.Bar(name='Peptides', x=index_list, y=peptides, yaxis='y2', offsetgroup=2,
+                   for t,s,r,v,w,q,x,y,z,a,b,c in dff.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',)
+    
+    trace1 =  go.Bar(name='Peptides', x=index_list, y=peptides, xaxis='x2', yaxis='y2',
                    text=['<b>%s</b><br>id: %d<br>Proteins: %d<br>Peptides: %d<br>Queries: %d<br>Hits: %d<br>Sample: %s<br>aquired: %s<br>analyzed: %s<br>type: %s<br>msResolution: %s<br>ChromFWHM_Min: %s'%(t,s,r,v,w,q,x,y,z,a,b,c) 
-                   for t,s,r,v,w,q,x,y,z,a,b,c in dff.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',),
-        ],
-        layout=
-            {
-             'plot_bgcolor': '#FFF',
-             'yaxis': {'title': 'Proteins'},
-             'yaxis2': {'title': 'Peptides', 'overlaying': 'y', 'side': 'right'},
-             'xaxis': {'title': 'Experiments', 'showticklabels': False}
-            }
-        )
+                   for t,s,r,v,w,q,x,y,z,a,b,c in dff.loc[:,['name','id','proteins','peptides','queries','hits','sample','aquired','analyzed','type','msResolution','ChromFWHM_Min']].values], hoverinfo = 'text',)
 
+    fig = make_subplots(rows = 2,
+                        cols = 1,
+                        subplot_titles = ("Proteins", "Peptides"),
+                        shared_xaxes = True)
+
+    fig.append_trace(trace0, 1, 1)
+    fig.append_trace(trace1, 2, 1)
+
+
+########
     fig.update_layout(
-        barmode="group",
+        height = 800,
         hoverlabel=dict(
-        bgcolor="white", 
-        font_size=16,
-        font_family="Rockwell"
+            bgcolor="white", 
+            font_size=16,
+            font_family="Rockwell"
         )
     )
+    fig.update_xaxes(showticklabels=False)
     return fig
 
 #Second Graph
@@ -165,6 +168,7 @@ def update_info_graph(selected_dropdown_value, filter):
     fig = px.line(dff, x=get_index_list(dff), y=selected_dropdown_value)
 
     fig.update_layout(xaxis_title="Experiments")
+    fig.update_xaxes(showticklabels=False)
 
     return fig
 
@@ -178,11 +182,12 @@ def update_info_graph(selected_dropdown_value, filter):
 def update_table(page_current, page_size, sort_by, filter):
     df = mem_get_df()
     dff = filter_data(df, filter)
+    dff = dff.sort_values(by=['id'], ascending=False) #default sorting by id -> descending
     if len(sort_by):
         dff = dff.sort_values(
             [col['column_id'] for col in sort_by],
             ascending=[
-                col['direction'] == 'asc'
+                col['direction'] == 'desc'
                 for col in sort_by
             ],
             inplace=False
@@ -240,7 +245,7 @@ def update_download_link(n_clicks):
 #run the app
 
 def main():
-    app.run_server(debug=True, host='0.0.0.0', port=8050)
+    app.run_server(debug=True, port=8050)
 
 if __name__ == '__main__':
     main()

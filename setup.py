@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocklog",
-    version="0.0.10",
+    version="0.1.0",
     author="Thilo Schild",
     author_email="work@thilo-schild.de",
     description="collects Logs and presents them in a web app",
