@@ -30,7 +30,6 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 ##################################################################################
 #Layout
 app.layout = html.Div(children=[
-    html.H1(children='Logs from The Rock'),
 
     html.Div(children='''
         
@@ -41,7 +40,6 @@ app.layout = html.Div(children=[
     html.Div(id='refreshed', children=''),
 
     dcc.Graph(id='graph'),
-
 
     dcc.Dropdown(id='dropdown',
                  options=[
